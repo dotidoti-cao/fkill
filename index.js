@@ -184,6 +184,32 @@ const parseInput = async input => {
 	return input;
 };
 
+const buildChildProcessTree = processes => {
+	// Build a map of parent PID -> list of child PIDs
+	const children = new Map();
+	for (const ps of processes) {
+		if (ps.ppid) {
+			const siblings = children.get(ps.ppid) || [];
+			siblings.push(ps.pid);
+			children.set(ps.ppid, siblings);
+		}
+	}
+
+	return children;
+};
+
+const getDescendantPids = (pid, childTree, visited = new Set()) => {
+	// Recursively find all descendant PIDs
+	if (visited.has(pid)) return [];
+	visited.add(pid);
+	const descendants = [...(childTree.get(pid) || [])];
+	for (const child of childTree.get(pid) || []) {
+		descendants.push(...getDescendantPids(child, childTree, visited));
+	}
+
+	return descendants;
+};
+
 const getCurrentProcessParentsPID = processes => {
 	const processMap = new Map(processes.map(ps => [ps.pid, ps.ppid]));
 	const pids = [];
